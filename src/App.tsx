@@ -4,10 +4,12 @@ import Index from "pages/Index";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/2" element={<Index2 />} />
-    </Routes>
+    <div>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/2" element={<Index2 />} />
+      </Routes>
+    </div>
   );
 }
 

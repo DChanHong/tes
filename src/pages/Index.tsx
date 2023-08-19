@@ -1,44 +1,42 @@
-import React from "react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect } from "react";
 import axios from "axios";
-import { todoListType, tempTodoListType, tempButtonStateType } from "Type";
+import { useRefSet } from "utils/useRefSet";
+import { useStateSet } from "utils/useStateSet";
+import TodoItem from "components/TodoItem";
+import TempTodoItem from "components/TempTodoItem";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Index = () => {
-  //useState 모음
-
-  //1. 임시용
-  const [tempTodoList, setTempTodoList] = useState<tempTodoListType[]>([]);
-  const [TempId, setTempId] = useState<number>(1); // tempTodoList에 추가시켜주기위한 ID
-  const [tempButtonState, setTempButtonState] = useState<tempButtonStateType[]>(
-    []
-  ); // tempTodoList 버튼 토글용 State
-
-  //2.  본 데이터용
-  const [todoList, setTodoList] = useState<todoListType[]>([]); //투두리스트 저장소
-  const [buttonState, setButtonState] = useState<tempButtonStateType[]>([]); //투두리스트 버튼 상태 저장소
-
   //useRef 모음
-
-  //1. 본 데이터용
-  const deleteRef = useRef<{ [key: number]: HTMLDivElement | null }>({}); //삭제하기용
-  const checkRef = useRef<{ [key: number]: HTMLInputElement | null }>({}); // 체크박스용
-  const commentRef = useRef<{ [key: number]: HTMLDivElement | null }>({}); // 코멘트 추출용
-  const modifyRef = useRef<{ [key: number]: HTMLInputElement | null }>({}); // 수정하기 inpu Ref
-
-  //2. 임시용
-  const tempCheckRef = useRef<{ [key: number]: HTMLInputElement | null }>({}); //체크박스용 Ref
-  const tempDataRef = useRef<{ [key: number]: HTMLDivElement | null }>({}); // 처음 출력시 보여줄 content Ref
-  const tempModifyRef = useRef<{ [key: number]: HTMLInputElement | null }>({}); //수정하기용 input Ref
-  const tempDeleteRef = useRef<{ [key: number]: HTMLDivElement | null }>({}); //삭제하기 버튼용 Ref
-
-  //3.  추가하기 용
-  const addDataRef = useRef<HTMLInputElement>(null);
-
-  // 각 api 함수들
-
-  // (1) 전체데이터 가져오기
-
-  //최초 todoList에 데이터가 들어올 때 , 임시 데이터에 마지막 요소의 id정보를 저장
+  const {
+    checkRef,
+    commentRef,
+    modifyRef,
+    tempCheckRef,
+    tempDataRef,
+    tempModifyRef,
+    addDataRef,
+  } = useRefSet();
+  //useState 모음
+  const {
+    tempTodoList,
+    TempId,
+    tempButtonState,
+    toastToggle,
+    todoList,
+    buttonState,
+    selectedDeleteStatet,
+    originTempState,
+    setTempTodoList,
+    setTempId,
+    setTempButtonState,
+    setTodoList,
+    setButtonState,
+    setSelectedDelete,
+    setOriginTempState,
+    setToastToggle,
+  } = useStateSet();
 
   /* 저장된 todoList 함수  시작 */
   //전체데이터 부르기
@@ -58,6 +56,7 @@ const Index = () => {
   const complete = (data: number) => {
     if (checkRef.current[data] && commentRef.current[data]) {
       // 현재 체크 상태를 가져온다.
+
       const checked = checkRef.current[data]?.checked;
       // 해당 id의 현재 체크상태를 idCompleted 속성에 담아준다.
       const newArray = todoList.map((item) =>
@@ -78,27 +77,17 @@ const Index = () => {
 
   // 본 데이터 삭제기하기 버튼
   const deleteComment = (data: number) => {
-    // 해당 태그 삭제 api 실행
-    if (
-      window.confirm(
-        "message: 할 일을 삭제하시겠습니까? \n삭제 한 할 일은 복구할 수 없습니다."
-      )
-    ) {
-      // 삭제 api 호출
-      try {
-        const result = axios.delete(
-          `http://localhost:8080/api/v1/todos/${data}`
-        );
-      } catch (error) {
-        console.error(error);
-      }
-
-      //임시 tempTodo에서도 삭제
-      const newArr = todoList.filter((item) => item.id !== data);
-      setTodoList(newArr);
-    } else {
-      return;
+    // 삭제 api 호출
+    try {
+      const result = axios.delete(`http://localhost:8080/api/v1/todos/${data}`);
+    } catch (error) {
+      console.error(error);
     }
+
+    //임시 tempTodo에서도 삭제
+    const newArr = todoList.filter((item) => item.id !== data);
+    setTodoList(newArr);
+    setSelectedDelete(0);
   };
 
   // 본 데이터 저장하기 버튼
@@ -126,7 +115,7 @@ const Index = () => {
         `http://localhost:8080/api/v1/todos/${data}`,
         {
           content: modifyContent,
-          isCompleted: false,
+          idCompleted: false,
         }
       );
     } catch (error) {
@@ -158,6 +147,7 @@ const Index = () => {
 
   const cancel = (data: number) => {
     //id를 받아와서 해당 id를 false로 전환시킨다.
+
     const newArray = buttonState.map((item) =>
       item.id === data ? { ...item, tempBool: false } : item
     );
@@ -192,15 +182,6 @@ const Index = () => {
           // 임시 ID랑 DB의 ID를 맞춰주어 임시 생성창을 저장해준다.
           setTempId(TempId + 1);
 
-          const TempData = { id: TempId, content: content, isCompleted: false };
-          setTempTodoList([...tempTodoList, TempData]);
-          const TempButtonData = { id: TempId, tempBool: false };
-          setTempButtonState([...tempButtonState, TempButtonData]);
-
-          if (addDataRef.current) {
-            addDataRef.current.value = "";
-          }
-
           // DB에 저장 API 호출
 
           const axiosData = { content: content };
@@ -210,7 +191,17 @@ const Index = () => {
               axiosData
             );
           } catch (error) {
+            alert("서버가 실행되지 않았습니다.");
             console.log(error);
+            return;
+          }
+          const TempData = { id: TempId, content: content, idCompleted: false };
+          setTempTodoList([...tempTodoList, TempData]);
+          const TempButtonData = { id: TempId, tempBool: false };
+          setTempButtonState([...tempButtonState, TempButtonData]);
+
+          if (addDataRef.current) {
+            addDataRef.current.value = "";
           }
         }
       } catch (error) {
@@ -230,7 +221,7 @@ const Index = () => {
       const checked = tempCheckRef.current[data]?.checked;
 
       const newArray = tempTodoList.map((item) =>
-        item.id === data ? { ...item, isCompleted: checked } : item
+        item.id === data ? { ...item, idCompleted: checked } : item
       );
       setTempTodoList(newArray);
     }
@@ -278,7 +269,7 @@ const Index = () => {
     try {
       const result = axios.patch(`http://localhost:8080/api/v1/todos/${data}`, {
         content: modifyContent,
-        isCompleted: false,
+        idCompleted: false,
       });
     } catch (error) {
       console.error(error);
@@ -287,7 +278,7 @@ const Index = () => {
     // 바뀐 콘텐트 바꾸기용 Array
     const newtodoArray = tempTodoList.map((item) =>
       item.id === data
-        ? { ...item, content: modifyContent, isCompleted: false }
+        ? { ...item, content: modifyContent, idCompleted: false }
         : item
     );
     setTempTodoList(newtodoArray);
@@ -307,32 +298,101 @@ const Index = () => {
 
   // 임시 창 삭제
   const tempDelete = (data: number) => {
-    // 해당 태그 삭제 api 실행
-    if (
-      window.confirm(
-        "message: 할 일을 삭제하시겠습니까? \n삭제 한 할 일은 복구할 수 없습니다."
-      )
-    ) {
-      // 삭제 api 호출
-      try {
-        const result = axios.delete(
-          `http://localhost:8080/api/v1/todos/${data}`
-        );
-      } catch (error) {
-        console.error(error);
-      }
+    // 삭제 api 호출
+    try {
+      const result = axios.delete(`http://localhost:8080/api/v1/todos/${data}`);
+    } catch (error) {
+      console.error(error);
+    }
 
-      //임시 tempTodo에서도 삭제
-      const newArr = tempTodoList.filter((item) => item.id !== data);
-      setTempTodoList(newArr);
-    } else {
-      return;
+    //임시 tempTodo에서도 삭제
+    const newArr = tempTodoList.filter((item) => item.id !== data);
+    setTempTodoList(newArr);
+  };
+
+  // 토스트에 넣어줄 박스
+  const CloseButton = () => (
+    <div className="p-2">
+      <div className="font-bold">
+        할 일은 삭제하시겠습니까? <br />
+        삭제한 할 일은 복구할 수 없습니다.
+      </div>
+      {/* false일 경우 temp / true일 경우 백데이터 */}
+      {!originTempState ? (
+        <div className="flex mt-2">
+          <button
+            className="custom-toast-button px-6 py-1 bg-[#2878BD] rounded-xl mx-2 text-white border-2"
+            onClick={() => tempDelete(selectedDeleteStatet)}
+          >
+            확인
+          </button>
+          <button
+            className="custom-toast-button border-2 px-6 rounded-xl"
+            onClick={() => setSelectedDelete(0)}
+          >
+            취소
+          </button>
+        </div>
+      ) : (
+        <div className="flex mt-2">
+          <button
+            className="custom-toast-button px-6 py-1 bg-[#2878BD] rounded-xl mx-2 text-white border-2"
+            onClick={() => deleteComment(selectedDeleteStatet)}
+          >
+            확인
+          </button>
+          <button
+            className="custom-toast-button border-2 px-6 rounded-xl"
+            onClick={() => setSelectedDelete(0)}
+          >
+            취소
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const showTempDeleteToast = async (data: number) => {
+    setSelectedDelete(data);
+    setOriginTempState(false);
+
+    if (toastToggle) {
+      toast.dismiss();
+    }
+    setToastToggle(true);
+    try {
+      toast.warning("", {
+        position: "top-center",
+        closeOnClick: true,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const showDeleteToast = async (data: number) => {
+    //
+    setSelectedDelete(data);
+    setOriginTempState(true);
+    if (toastToggle) {
+      toast.dismiss();
+    }
+    setToastToggle(true);
+    try {
+      toast.warning("", {
+        position: "top-center",
+        closeOnClick: true,
+      });
+    } catch (error) {
+      console.error(error);
     }
   };
 
   return (
     <div className=" w-6/12 mx-auto">
+      <ToastContainer closeButton={<CloseButton />} />
       {/* Title */}
+
       <div className="py-6 bg-[#4C3C8E] mx-auto"></div>
       <div className="flex justify-beteween  border- mx-auto">
         <h1 className="text-[#4C3C8E] text-[40px] ml-4 font-bold pt-7 pl-8 pb-2">
@@ -356,6 +416,7 @@ const Index = () => {
           할 일 추가
         </button>
       </div>
+
       {/* 할 일 보여주기 */}
 
       {todoList.length + tempTodoList.length === 0 ? (
@@ -374,168 +435,36 @@ const Index = () => {
                 new Date(String(b.createdDateTime)).getTime()
             )
             .map((item, index) => (
-              <div
+              <TodoItem
                 key={index}
-                ref={(ref) => (deleteRef.current[Number(item.id)] = ref)}
-                className="flex w-full  border-2 border-[#796CAE] border-x-white border-t-white mb-7 pb-2"
-              >
-                <div className="w-1/12 ">
-                  <input
-                    type="checkbox"
-                    className="w-6 h-6 ml-10 mt-1.5"
-                    ref={(ref) => (checkRef.current[Number(item.id)] = ref)}
-                    onClick={() => complete(Number(item.id))}
-                  />
-                </div>
-                {buttonState
-                  .filter((data) => data.id === item.id)
-                  .map((data, index) => (
-                    <div key={index} className="w-10/12 ml-10">
-                      {!data.tempBool ? (
-                        <div className="flex justify-between">
-                          <div
-                            ref={(ref) =>
-                              (commentRef.current[Number(item.id)] = ref)
-                            }
-                            className={`${
-                              !item.idCompleted ? "" : "line-through"
-                            } w-9/12  p-1 pl-3`}
-                          >
-                            {item.content}
-                          </div>
-                          <div className="w-3/12">
-                            <button
-                              type="button"
-                              className=" p-1 px-2 bg-[#E3DAF2] text-[#48218C] rounded-xl"
-                              onClick={() => modify(Number(item.id))}
-                            >
-                              수정
-                            </button>
-                            <button
-                              type="button"
-                              className=" p-1 ml-2 px-2 mx-1 bg-[#E3DAF2] text-[#48218C] rounded-xl"
-                              onClick={() => deleteComment(Number(item.id))}
-                            >
-                              삭제
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex justify-between">
-                          <input
-                            className="border-2 outline-none w-9/12 p-1 px-2 mr-1 rounded-xl border-[#796CAE]"
-                            type="text"
-                            defaultValue={item.content}
-                            ref={(ref) =>
-                              (modifyRef.current[Number(item.id)] = ref)
-                            }
-                            maxLength={50}
-                          />
-                          <div className="w-3/12">
-                            <button
-                              type="button"
-                              className=" p-1  px-2 bg-[#D9E6F1] text-[#1F4786] rounded-xl"
-                              onClick={() => save(Number(item.id))}
-                            >
-                              저장
-                            </button>
-                            <button
-                              type="button"
-                              className=" p-1 ml-2 px-2 mx-1 bg-[#D9E6F1] text-[#1F4786] rounded-xl"
-                              onClick={() => cancel(Number(item.id))}
-                            >
-                              취소
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
+                item={item}
+                buttonState={buttonState}
+                onModify={modify}
+                onCancel={cancel}
+                onComplete={complete}
+                onSave={save}
+                onShowDeleteToast={showDeleteToast}
+                onCheckRef={checkRef}
+                onCommentRef={commentRef}
+                onModifyRef={modifyRef}
+              />
             ))}
+
           {/* 여기서부턴 임시 보여주기창 */}
           {tempTodoList.map((item, index) => (
-            <div
-              ref={(ref) => (tempDeleteRef.current[Number(item.id)] = ref)}
-              className="flex w-full  border-2 border-[#796CAE] border-x-white border-t-white mb-7 pb-2"
+            <TodoItem
               key={index}
-            >
-              {/* 체크 박스 */}
-              <div className="w-1/12 ">
-                <input
-                  type="checkbox"
-                  className="w-6 h-6 ml-10 mt-1.5"
-                  ref={(ref) => (tempCheckRef.current[Number(item.id)] = ref)}
-                  onClick={() => tempComplete(Number(item.id))}
-                />
-              </div>
-
-              {tempButtonState
-                .filter((data) => data.id === item.id)
-                .map((data, index) => (
-                  <div key={index} className="w-10/12 ml-10">
-                    {/* 변경불가 텍스트 상자 ,수정 삭제 ,버튼 박스 */}
-                    {!data.tempBool ? (
-                      <div className="flex justify-between">
-                        <div
-                          ref={(ref) =>
-                            (tempDataRef.current[Number(item.id)] = ref)
-                          }
-                          className={` ${
-                            !item.isCompleted ? "" : "line-through"
-                          }  w-9/12  p-1 pl-3 `}
-                        >
-                          {item.content}
-                        </div>
-                        <div className="w-3/12">
-                          <button
-                            type="button"
-                            className=" p-1 px-2 bg-[#E3DAF2] text-[#48218C] rounded-xl"
-                            onClick={() => tempModify(Number(item.id))}
-                          >
-                            수정
-                          </button>
-                          <button
-                            type="button"
-                            className=" p-1 ml-2 px-2 mx-1 bg-[#E3DAF2] text-[#48218C] rounded-xl"
-                            onClick={() => tempDelete(Number(item.id))}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex justify-between">
-                        <input
-                          className="border-2 outline-none w-9/12 p-1 px-2 mr-1 rounded-xl border-[#796CAE]"
-                          type="text"
-                          defaultValue={item.content}
-                          ref={(ref) =>
-                            (tempModifyRef.current[Number(item.id)] = ref)
-                          }
-                          maxLength={50}
-                        />
-                        <div className="w-3/12">
-                          <button
-                            type="button"
-                            className=" p-1  px-2 bg-[#D9E6F1] text-[#1F4786] rounded-xl"
-                            onClick={() => tempSave(Number(item.id))}
-                          >
-                            저장
-                          </button>
-                          <button
-                            type="button"
-                            className=" p-1 ml-2 px-2 mx-1 bg-[#D9E6F1] text-[#1F4786] rounded-xl"
-                            onClick={() => tempCancel(Number(item.id))}
-                          >
-                            취소
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
+              item={item}
+              buttonState={tempButtonState}
+              onModify={tempModify}
+              onCancel={tempCancel}
+              onComplete={tempComplete}
+              onSave={tempSave}
+              onShowDeleteToast={showTempDeleteToast}
+              onCheckRef={tempCheckRef}
+              onCommentRef={tempDataRef}
+              onModifyRef={tempModifyRef}
+            />
           ))}
         </div>
       )}

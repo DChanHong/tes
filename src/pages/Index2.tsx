@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import axios from "axios";
 import { useRef, useState } from "react";
-import { todoListType } from "Type";
+import { todoListType } from "../utils/Type";
 
 const Index2 = () => {
   const [todoListState, setTodoListState] = useState<boolean>(false);

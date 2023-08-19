@@ -9,7 +9,7 @@ export interface todoListType {
 export interface tempTodoListType {
   id: number | undefined;
   content: string | undefined;
-  isCompleted: boolean | undefined;
+  idCompleted: boolean | undefined;
 }
 
 export interface tempButtonStateType {
