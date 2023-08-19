@@ -3,7 +3,6 @@ import axios from "axios";
 import { useRefSet } from "utils/useRefSet";
 import { useStateSet } from "utils/useStateSet";
 import TodoItem from "components/TodoItem";
-import TempTodoItem from "components/TempTodoItem";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -76,10 +75,12 @@ const Index = () => {
   };
 
   // 본 데이터 삭제기하기 버튼
-  const deleteComment = (data: number) => {
+  const deleteComment = async (data: number) => {
     // 삭제 api 호출
     try {
-      const result = axios.delete(`http://localhost:8080/api/v1/todos/${data}`);
+      const result = await axios.delete(
+        `http://localhost:8080/api/v1/todos/${data}`
+      );
     } catch (error) {
       console.error(error);
     }
