@@ -42,6 +42,7 @@ const Index = () => {
   const getData = async () => {
     try {
       const result = await axios.get("http://localhost:8080/api/v1/todos");
+
       setTodoList(result.data.value);
     } catch (error) {
       console.error(error);
@@ -57,9 +58,9 @@ const Index = () => {
       // 현재 체크 상태를 가져온다.
 
       const checked = checkRef.current[data]?.checked;
-      // 해당 id의 현재 체크상태를 idCompleted 속성에 담아준다.
+      // 해당 id의 현재 체크상태를 isCompleted 속성에 담아준다.
       const newArray = todoList.map((item) =>
-        item.id === data ? { ...item, idCompleted: checked } : item
+        item.id === data ? { ...item, isCompleted: checked } : item
       );
       setTodoList(newArray);
     }
@@ -76,6 +77,16 @@ const Index = () => {
 
   // 본 데이터 삭제기하기 버튼
   const deleteComment = async (data: number) => {
+    //임시 tempTodo에서도 삭제
+    const check = checkRef.current[data];
+    if (check) {
+      check.checked = false;
+    }
+
+    const newArr = todoList.filter((item) => item.id !== data);
+    setTodoList(newArr);
+    setSelectedDelete(0);
+    toast.dismiss();
     // 삭제 api 호출
     try {
       const result = await axios.delete(
@@ -84,11 +95,6 @@ const Index = () => {
     } catch (error) {
       console.error(error);
     }
-
-    //임시 tempTodo에서도 삭제
-    const newArr = todoList.filter((item) => item.id !== data);
-    setTodoList(newArr);
-    setSelectedDelete(0);
   };
 
   // 본 데이터 저장하기 버튼
@@ -116,7 +122,7 @@ const Index = () => {
         `http://localhost:8080/api/v1/todos/${data}`,
         {
           content: modifyContent,
-          idCompleted: false,
+          isCompleted: false,
         }
       );
     } catch (error) {
@@ -126,7 +132,7 @@ const Index = () => {
     // 바뀐 콘텐트 바꾸기용 Array 완료버튼 false로 변경 및 콘텐츠 변경
     const newtodoArray = todoList.map((item) =>
       item.id === data
-        ? { ...item, content: modifyContent, idCompleted: false }
+        ? { ...item, content: modifyContent, isCompleted: false }
         : item
     );
 
@@ -160,6 +166,7 @@ const Index = () => {
       const numberId = Number(todoList[todoList.length - 1].id) + 1;
       setTempId(numberId);
     }
+
     // 본 데이터 버튼 토글용
     const arr = todoList.map((item) => ({
       id: Number(item.id),
@@ -182,9 +189,7 @@ const Index = () => {
         } else {
           // 임시 ID랑 DB의 ID를 맞춰주어 임시 생성창을 저장해준다.
           setTempId(TempId + 1);
-
           // DB에 저장 API 호출
-
           const axiosData = { content: content };
           try {
             const result = await axios.post(
@@ -196,10 +201,22 @@ const Index = () => {
             console.log(error);
             return;
           }
-          const TempData = { id: TempId, content: content, idCompleted: false };
-          setTempTodoList([...tempTodoList, TempData]);
-          const TempButtonData = { id: TempId, tempBool: false };
-          setTempButtonState([...tempButtonState, TempButtonData]);
+
+          // todoList가 빈값이면, 마지막 id값을 찾을 수 없기에, api호출
+          if (todoList.length === 0) {
+            getData();
+          }
+          // todoList가 0이 넘으면 Id추출이 가능하기에 클라이언트 state에 저장
+          else {
+            const TempData = {
+              id: TempId,
+              content: content,
+              isCompleted: false,
+            };
+            setTempTodoList([...tempTodoList, TempData]);
+            const TempButtonData = { id: TempId, tempBool: false };
+            setTempButtonState([...tempButtonState, TempButtonData]);
+          }
 
           if (addDataRef.current) {
             addDataRef.current.value = "";
@@ -222,7 +239,7 @@ const Index = () => {
       const checked = tempCheckRef.current[data]?.checked;
 
       const newArray = tempTodoList.map((item) =>
-        item.id === data ? { ...item, idCompleted: checked } : item
+        item.id === data ? { ...item, isCompleted: checked } : item
       );
       setTempTodoList(newArray);
     }
@@ -270,7 +287,7 @@ const Index = () => {
     try {
       const result = axios.patch(`http://localhost:8080/api/v1/todos/${data}`, {
         content: modifyContent,
-        idCompleted: false,
+        isCompleted: false,
       });
     } catch (error) {
       console.error(error);
@@ -279,7 +296,7 @@ const Index = () => {
     // 바뀐 콘텐트 바꾸기용 Array
     const newtodoArray = tempTodoList.map((item) =>
       item.id === data
-        ? { ...item, content: modifyContent, idCompleted: false }
+        ? { ...item, content: modifyContent, isCompleted: false }
         : item
     );
     setTempTodoList(newtodoArray);
@@ -299,16 +316,21 @@ const Index = () => {
 
   // 임시 창 삭제
   const tempDelete = (data: number) => {
+    const check = tempCheckRef.current[data];
+    if (check) {
+      check.checked = false;
+    }
+
+    //임시 tempTodo에서도 삭제
+    const newArr = tempTodoList.filter((item) => item.id !== data);
+    setTempTodoList(newArr);
+    toast.dismiss();
     // 삭제 api 호출
     try {
       const result = axios.delete(`http://localhost:8080/api/v1/todos/${data}`);
     } catch (error) {
       console.error(error);
     }
-
-    //임시 tempTodo에서도 삭제
-    const newArr = tempTodoList.filter((item) => item.id !== data);
-    setTempTodoList(newArr);
   };
 
   // 토스트에 넣어줄 박스

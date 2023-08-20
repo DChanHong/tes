@@ -65,7 +65,7 @@
 
 **5.기타**
 
-- todoList와 tempTodolist의 크기를 확인하여 0 이면, 등록된 [할 일]이 아닙니다 택스트 보여주기
+- todoList와 tempTodolist의 크기를 확인하여 0 이면, 등록된 [할 일]이 아닙니다 텍스트 보여주기
 - sort메서드를 이용하여 todoList를 생성일 기준으로 오름차순으로 보여주기
 - ellipsis 처리를 위해 truncate 속성 부여
 - 50글자 제한을 위해 input에 maxLength={50} 으로 설정

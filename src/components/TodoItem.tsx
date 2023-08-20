@@ -58,7 +58,7 @@ const TodoItem: React.FC<Props> = ({
                 <div
                   ref={(ref) => (onCommentRef.current[Number(item.id)] = ref)}
                   className={`${
-                    !item.idCompleted ? "" : "line-through"
+                    !item.isCompleted ? "" : "line-through"
                   } w-9/12  p-1 pl-3 truncate`}
                 >
                   {item.content}
